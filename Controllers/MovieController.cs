@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using MovieAPI.Data;
+using MovieAPI.Data.Dtos;
 using MovieAPI.Models;
 using System;
 using System.Collections.Generic;
@@ -13,15 +15,19 @@ namespace MovieAPI.Controllers
     public class MovieController : ControllerBase
     {
         private MovieContext _context;
+        private IMapper _mapper;
         
-        public MovieController(MovieContext context)
+        public MovieController(MovieContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpPost]
-        public IActionResult AddMovie([FromBody] Movie movie)
+        public IActionResult AddMovie([FromBody] CreateMovieDto movieDto)
         {
+            Movie movie = _mapper.Map<Movie>(movieDto);
+            
             _context.Movies.Add(movie);
             _context.SaveChanges();
             return CreatedAtAction(nameof(getMoviesForId), new { Id = movie.Id }, movie);
@@ -39,7 +45,8 @@ namespace MovieAPI.Controllers
             Movie movie = _context.Movies.FirstOrDefault(movie => movie.Id == id);
             if(movie != null)
             {
-                return Ok(movie);
+                ReadMovieDto movieDto = _mapper.Map<ReadMovieDto>(movie);
+                return Ok(movieDto);
             }
             return NotFound();
             
@@ -55,17 +62,14 @@ namespace MovieAPI.Controllers
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateMovie(int id, [FromBody] Movie newMovie)
+        public IActionResult UpdateMovie(int id, [FromBody] UpdateMovieDto movieDto)
         {
             Movie movie = _context.Movies.FirstOrDefault(movie => movie.Id == id);
             if(movie == null)
             {
                 return NotFound();
             }
-            movie.Titulo = newMovie.Titulo;
-            movie.Genero = newMovie.Genero;
-            movie.Duracao = newMovie.Duracao;
-            movie.Diretor = newMovie.Diretor;
+            _mapper.Map(movieDto, movie);
             _context.SaveChanges();
             return NoContent();
         }
